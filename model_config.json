@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "지식재산처 AI 실행과제 내부 대시보드",
+    "subtitle": "EAV 데이터 모델 기반 내부 조직(국·과)별 AI 과제 관리 임시 화면",
+    "notice": "실제 데이터 적재 전까지 사용하는 샘플 데이터입니다."
+  },
+  "entities": {
+    "task": {
+      "label": "과제",
+      "id_prefix": "IPAI"
+    },
+    "organization": {
+      "label": "조직",
+      "levels": ["국", "과"]
+    }
+  },
+  "attributes": {
+    "task": [
+      {"key": "task_no", "label": "과제번호", "type": "text"},
+      {"key": "title", "label": "과제명", "type": "text"},
+      {"key": "policy_area", "label": "정책영역", "type": "category"},
+      {"key": "ip_domain", "label": "IP 분야", "type": "category"},
+      {"key": "priority", "label": "우선순위", "type": "category"},
+      {"key": "status", "label": "진행상태", "type": "category"},
+      {"key": "lead_bureau", "label": "주관국", "type": "organization_level"},
+      {"key": "lead_division", "label": "주관과", "type": "organization_level"},
+      {"key": "owner", "label": "담당자", "type": "text"},
+      {"key": "due_quarter", "label": "목표분기", "type": "quarter"},
+      {"key": "progress", "label": "진척률(%)", "type": "number"},
+      {"key": "risk_level", "label": "위험도", "type": "category"},
+      {"key": "description", "label": "주요내용", "type": "long_text"},
+      {"key": "next_action", "label": "다음 조치", "type": "long_text"}
+    ]
+  },
+  "views": {
+    "overview": {
+      "metric_attributes": ["task_no", "lead_bureau", "lead_division", "risk_level"],
+      "group_by": ["lead_bureau", "policy_area", "status", "risk_level"],
+      "columns": ["task_no", "title", "policy_area", "ip_domain", "lead_bureau", "lead_division", "status", "priority", "due_quarter", "progress", "risk_level"]
+    },
+    "task_explorer": {
+      "filter_attributes": ["policy_area", "ip_domain", "lead_bureau", "lead_division", "status", "priority", "risk_level"],
+      "search_attributes": ["task_no", "title", "description", "next_action", "owner"],
+      "columns": ["task_no", "title", "policy_area", "ip_domain", "lead_bureau", "lead_division", "owner", "due_quarter", "status", "priority", "progress", "risk_level", "next_action"]
+    },
+    "organization": {
+      "group_by": ["lead_bureau", "lead_division"],
+      "columns": ["task_no", "title", "policy_area", "ip_domain", "owner", "due_quarter", "status", "priority", "progress", "risk_level", "next_action"]
+    }
+  }
+}
