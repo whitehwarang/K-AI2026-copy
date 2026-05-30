@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 사업관리시스템 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text-muted: #8892a4;
+    --blue: #3b82f6;
+    --blue-light: #60a5fa;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --accent: #6366f1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP NAV ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; gap: 0;
+    height: 56px;
+  }
+  .topbar-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    margin-right: 40px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.18s;
+  }
+  .topbar-logo:hover { color: var(--blue-light); }
+  .nav-tabs { display: flex; gap: 2px; flex: 1; }
+  .nav-tab {
+    padding: 6px 18px;
+    border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.18s;
+    border: none; background: transparent;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { color: var(--text); background: var(--surface2); }
+  .nav-tab.active { color: var(--blue-light); background: rgba(59,130,246,0.12); }
+
+  .upload-btn {
+    margin-left: auto;
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 12px; font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .upload-btn:hover { border-color: var(--blue); color: var(--blue-light); }
+
+  .update-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-muted);
+    margin-left: 16px;
+    white-space: nowrap;
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 16px 20px; animation: fadeIn 0.25s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .section-title {
+    font-size: 17px; font-weight: 700;
+    color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 24px;
+  }
+  .section-title::before {
+    content: '';
+    display: block; width: 4px; height: 20px;
+    background: var(--blue);
+    border-radius: 2px;
+  }
+
+  /* ── 통합 대시보드 레이아웃 (TV 3컬럼) ── */
+  .dashboard-wrap {
+    display: grid;
+    grid-template-columns: 580px 1fr 210px;
+    gap: 16px;
+    height: calc(100vh - 56px - 32px);
+    overflow: hidden;
+  }
+
+  /* 좌측: 통계 2×2 */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 12px;
+    height: calc(100vh - 56px - 32px);
+    align-self: start;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .stat-card-title {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-muted); letter-spacing: 0.06em;
+    text-transform: uppercase; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* 가운데: 테이블 (단독 스크롤) */
+  .progress-table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    align-self: start;
+    max-height: calc(100vh - 56px - 32px);
+  }
+  .progress-table-scroll {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .progress-table-scroll::-webkit-scrollbar { width: 4px; }
+  .progress-table-scroll::-webkit-scrollbar-track { background: transparent; }
+  .progress-table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .progress-table { width: 100%; border-collapse: collapse; }
+  .progress-table th {
+    padding: 12px 16px; text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    position: sticky; top: 0; z-index: 1;
+  }
+  .progress-table td {
+    padding: 13px 16px;
+    font-size: 13px; color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .progress-table tr:last-child td { border-bottom: none; }
+  .progress-table tr:hover td { background: var(--surface2); }
+  .progress-bar-cell { display: flex; align-items: center; gap: 8px; }
+  .progress-track { width: 160px; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s; }
+  .pct-text { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; }
+  .status-badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+  .status-select  { background: rgba(245,158,11,0.15);  color: var(--yellow); }   /* 사업자 선정 */
+  .status-start   { background: rgba(99,102,241,0.15);  color: var(--accent); }   /* 착수 */
+  .status-progress{ background: rgba(59,130,246,0.15);  color: var(--blue-light); } /* 진행 */
+  .status-done    { background: rgba(16,185,129,0.15);  color: var(--green); }    /* 완료 */
+  .progress-table-title {
+    padding: 14px 16px 12px;
+    font-size: 13px; font-weight: 700; color: var(--text);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .progress-table-title::before {
+    content: ''; display: block; width: 3px; height: 14px;
+    background: var(--blue); border-radius: 2px;
+  }
+
+  /* 우측: KPI + 진척 현황 */
+  .kpi-panel { display: flex; flex-direction: column; gap: 12px; align-self: start; }
+  .progress-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 16px; flex-shrink: 0; }
+  .kpi-number { font-family: 'IBM Plex Mono', monospace; font-size: 36px; font-weight: 700; color: var(--blue-light); line-height: 1; }
+  .kpi-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .kpi-divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .kpi-count { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 700; color: var(--text); }
+  .risk-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; flex: 1; }
+  .risk-card-title { font-size: 10px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+  .risk-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .risk-row:last-child { border-bottom: none; }
+  .risk-name { font-size: 12px; color: var(--text); }
+  .risk-badge { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; }
+  .risk-badge.red    { color: var(--red); }
+  .risk-badge.yellow { color: var(--yellow); }
+  .risk-badge.green  { color: var(--green); }
+
+  /* 도넛 차트 */
+  .donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; justify-content: center; }
+  .donut-chart { position: relative; width: 160px; height: 160px; }
+  .donut-chart svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .donut-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .donut-label span:first-child { font-size: 11px; color: var(--text-muted); }
+  .donut-label span:last-child { font-size: 32px; font-weight: 700; color: var(--text); font-family: 'IBM Plex Mono', monospace; }
+  .donut-legend { display: flex; gap: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* 세로 막대 */
+  .vchart-wrap { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; min-height: 0; }
+  .vchart-bars { display: flex; align-items: flex-end; gap: 6px; flex: 1; min-height: 0; }
+  .vchart-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; height: 100%; justify-content: flex-end; }
+  .vchart-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.6s cubic-bezier(.4,0,.2,1); min-height: 4px; }
+  .vchart-val { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-muted); }
+  .vchart-axis { display: flex; gap: 6px; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; flex-shrink: 0; }
+  .vchart-label { flex: 1; text-align: center; font-size: 10px; color: var(--text-muted); }
+
+  /* GPU 바 */
+  .gpu-wrap { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; }
+  .gpu-wrap::-webkit-scrollbar { width: 3px; }
+  .gpu-wrap::-webkit-scrollbar-track { background: transparent; }
+  .gpu-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .gpu-row { display: flex; flex-direction: column; gap: 4px; }
+  .gpu-row-header { display: flex; justify-content: space-between; align-items: center; }
+  .gpu-name { font-size: 11px; color: var(--text); }
+  .gpu-pct { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; }
+  .gpu-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .gpu-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(.4,0,.2,1); background: linear-gradient(90deg, #10b981, #3b82f6); }
+
+  /* 파이 차트 */
+  .pie-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; justify-content: center; }
+  .pie-chart { position: relative; width: 170px; height: 170px; }
+  .pie-chart svg { width: 100%; height: 100%; }
+  .pie-legend { display: flex; gap: 14px; }
+  .pie-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+
+  /* ── DASHBOARD 2: 상세 사업별 현황 ── */
+  .project-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .project-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    transition: border-color 0.18s, background 0.18s;
+    cursor: pointer;
+  }
+  .project-card:hover { border-color: var(--blue); background: var(--surface2); }
+  .project-card-tags { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tag {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+    padding: 3px 8px; border-radius: 4px;
+    text-transform: uppercase;
+    background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border);
+  }
+  .project-card-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+
+  /* 카드 내 현재 단계 */
+  .project-card-steps { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .project-card-step {
+    font-size: 11px; font-weight: 500;
+    padding: 3px 10px; border-radius: 20px;
+    background: var(--bg); color: var(--text-muted);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .project-card-step.active {
+    background: rgba(59,130,246,0.15);
+    color: var(--blue-light);
+    border-color: rgba(59,130,246,0.4);
+    font-weight: 600;
+  }
+  .card-step-arrow { color: var(--text-muted); font-size: 11px; margin: 0 1px; }
+
+  /* ── 사업 상세 모달 ── */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+  }
+  .modal-backdrop.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 540px; max-width: 92vw;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    animation: modalIn 0.2s ease;
+    overflow: hidden;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .modal-header {
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0;
+  }
+  .modal-title-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px; font-weight: 700; color: var(--text);
+    margin-right: 12px;
+  }
+  .modal-tags { display: flex; gap: 8px; flex: 1; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: all 0.15s; flex-shrink: 0;
+  }
+  .modal-close:hover { border-color: var(--red); color: var(--red); }
+
+  .modal-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+  .modal-row {
+    display: grid; grid-template-columns: 90px 1fr; gap: 12px;
+    align-items: start;
+  }
+  .modal-label {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    padding-top: 1px;
+  }
+  .modal-value { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+  /* 현재 단계 스텝 */
+  .modal-steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .modal-step {
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    background: var(--surface2); color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .modal-step.active {
+    background: rgba(59,130,246,0.18);
+    color: var(--blue-light);
+    border-color: rgba(59,130,246,0.35);
+  }
+  .modal-step-arrow { color: var(--border); font-size: 12px; }
+
+  /* 예산 정보 박스 */
+  .modal-budget-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .modal-budget-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+  }
+  .modal-budget-label { color: var(--text-muted); }
+  .modal-budget-val { font-family: 'IBM Plex Mono', monospace; color: var(--text); font-weight: 600; }
+  .modal-budget-bar-row { display: flex; align-items: center; gap: 10px; }
+  .modal-budget-track { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .modal-budget-fill { height: 100%; border-radius: 3px; background: var(--blue); transition: width 0.5s; }
+  .modal-budget-pct { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; color: var(--text-muted); min-width: 40px; text-align: right; }
+
+  .modal-footer {
+    padding: 0 28px 24px;
+  }
+  .modal-btn-close {
+    width: 100%; padding: 13px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 14px; font-weight: 600;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .modal-btn-close:hover { border-color: var(--blue); color: var(--blue-light); background: rgba(59,130,246,0.08); }
+
+  /* ── 숨겨진 파일 input ── */
+  #fileInput { display: none; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topbar">
+  <div class="topbar-logo" onclick="switchPage(0)">AI·BMS</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchPage(0)">📊 대시보드</button>
+    <button class="nav-tab" onclick="switchPage(1)">📁 사업별 현황</button>
+  </div>
+  <button class="upload-btn" id="updateBtn" onclick="loadExcel()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+      <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 5.36A9 9 0 0020.49 15"/>
+    </svg>
+    데이터 업데이트
+  </button>
+  <span class="update-badge" id="updateBadge">데이터 로딩 중...</span>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 0: 대시보드 (3컬럼 TV 레이아웃)                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page active" id="page-0">
+  <div class="dashboard-wrap">
+
+    <!-- ── 좌측: 통계 2×2 ── -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-title">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          AX 내외부 분포
+        </div>
+        <div class="donut-wrap">
+          <div class="donut-chart">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="38" fill="none" stroke="#1c2333" stroke-width="16"/>
+              <circle id="donut-ext" cx="50" cy="50" r="38" fill="none" stroke="#3b82f6" stroke-width="16" stroke-dasharray="239.4" stroke-dashoffset="0"/>
+              <circle id="donut-int" cx="50" cy="50" r="38" fill="none" stroke="#6366f1" stroke-width="16" stroke-dasharray="239.4" stroke-dashoffset="0"/>
+            </svg>
+            <div class="donut-label"><span>TOTAL</span><span id="donut-total">4</span></div>
+          </div>
+          <div class="donut-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div><span id="legend-ext">외부 (3)</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div><span id="legend-int">내부 (1)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-title">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          전략분야별 과제 수
+        </div>
+        <div class="vchart-wrap">
+          <div class="vchart-bars" id="vchart-bars"></div>
+          <div class="vchart-axis" id="vchart-axis"></div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-title">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          사업당 GPU 활용률
+        </div>
+        <div class="gpu-wrap" id="gpu-list"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-title">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>
+          국산 AI 활용률
+        </div>
+        <div class="pie-wrap">
+          <div class="pie-chart"><svg viewBox="0 0 160 160" id="pie-svg"></svg></div>
+          <div class="pie-legend">
+            <div class="pie-legend-item"><div class="legend-dot" style="background:#10b981"></div><span id="pie-legend-dom">국산 (0%)</span></div>
+            <div class="pie-legend-item"><div class="legend-dot" style="background:#3b82f6"></div><span id="pie-legend-ext">외산 (0%)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 가운데: 사업 진척 테이블 (단독 스크롤) ── -->
+    <div class="progress-table-wrap">
+      <div class="progress-table-title">AX 사업 추진 현황</div>
+      <div class="progress-table-scroll">
+        <table class="progress-table">
+          <thead>
+            <tr>
+              <th>사업명</th>
+              <th>담당</th>
+              <th colspan="2">진척도</th>
+              <th>진행 단계</th>
+            </tr>
+          </thead>
+          <tbody id="progress-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── 우측: KPI + 진척 현황 ── -->
+    <div class="kpi-panel">
+      <div class="progress-kpi">
+        <div class="kpi-number" id="kpi-avg">42.5%</div>
+        <div class="kpi-label">통합 평균 진척도</div>
+        <div class="kpi-divider"></div>
+        <div class="kpi-count" id="kpi-total">04</div>
+        <div class="kpi-label">전체 사업</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-card-title">사업 진척 현황</div>
+        <div class="risk-row">
+          <span class="risk-name">사업자 선정</span>
+          <span class="risk-badge" style="color:var(--yellow)" id="risk-focus">0</span>
+        </div>
+        <div class="risk-row">
+          <span class="risk-name">착수 · 진행중</span>
+          <span class="risk-badge" style="color:var(--blue-light)" id="risk-normal">0</span>
+        </div>
+        <div class="risk-row">
+          <span class="risk-name">완료</span>
+          <span class="risk-badge" style="color:var(--green)" id="risk-done">0</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- PAGE 1: 사업별 현황                    -->
+<!-- ═══════════════════════════════════════ -->
+<div class="page" id="page-1">
+  <div class="section-title">상세 사업별 현황</div>
+  <div class="project-grid" id="project-grid"></div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- MODAL: 사업 상세 설명                  -->
+<!-- ═══════════════════════════════════════ -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title-name" id="modal-name">-</span>
+      <div class="modal-tags" id="modal-tags"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-row">
+        <span class="modal-label">사업명</span>
+        <span class="modal-value" id="modal-field-name">-</span>
+      </div>
+      <div class="modal-row">
+        <span class="modal-label">사업 구분</span>
+        <span class="modal-value" id="modal-field-ax">-</span>
+      </div>
+      <div class="modal-row">
+        <span class="modal-label">담당 부서</span>
+        <span class="modal-value" id="modal-field-dept">-</span>
+      </div>
+      <div class="modal-row">
+        <span class="modal-label">사업 개요</span>
+        <span class="modal-value" id="modal-field-explain">-</span>
+      </div>
+      <div class="modal-row">
+        <span class="modal-label">현재 단계</span>
+        <div class="modal-steps" id="modal-steps"></div>
+      </div>
+      <div class="modal-row">
+        <span class="modal-label">예산 정보</span>
+        <div class="modal-budget-box">
+          <div class="modal-budget-row">
+            <span class="modal-budget-label">총예산액</span>
+            <span class="modal-budget-val" id="modal-total-budget">-</span>
+          </div>
+          <div class="modal-budget-row">
+            <span class="modal-budget-label">사용 예산액</span>
+            <span class="modal-budget-val" id="modal-spend-budget">-</span>
+          </div>
+          <div class="modal-budget-row">
+            <span class="modal-budget-label">예산 집행률</span>
+            <div class="modal-budget-bar-row" style="flex:1;margin-left:12px;">
+              <div class="modal-budget-track">
+                <div class="modal-budget-fill" id="modal-budget-fill"></div>
+              </div>
+              <span class="modal-budget-pct" id="modal-budget-pct">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// 샘플 데이터
+// ══════════════════════════════════════════════════════════
+let DATA = [
+  { dept: 'dept1', ax: 'INTERNAL AX', category: '행정', name: 'AAA', progress_act:'사업자 선정', progress: 25, explain:'AAA 사업에 대한 개요입니다. 사업에 대한 간략한 개요가 적힐 예정입니다.', total_budget:200, spend_budget:50, gpu_usage: 72.4, ai_domestic: 'N' },
+  { dept: 'dept2', ax: 'EXTERNAL AX', category: '행정', name: 'BBB', progress_act:'완료', progress: 100, explain:'BBB 사업에 대한 개요입니다. 사업에 대한 간략한 개요가 적힐 예정입니다.', total_budget:130, spend_budget:10, gpu_usage: 69.4, ai_domestic: 'Y' },
+  { dept: 'dept3', ax: 'EXTERNAL AX', category: 'R&D', name: 'CCC', progress_act:'진행중', progress: 75, explain:'CCC 사업에 대한 개요입니다. 사업에 대한 간략한 개요가 적힐 예정입니다.', total_budget:602, spend_budget:600, gpu_usage: 50.3, ai_domestic: 'N' },
+  { dept: 'dept4', ax: 'INTERNAL AX', category: '보호', name: 'DDD', progress_act:'착수', progress: 50, explain:'DDD 사업에 대한 개요입니다. 사업에 대한 간략한 개요가 적힐 예정입니다.', total_budget:590, spend_budget:500, gpu_usage: 70.3, ai_domestic: 'Y' },
+  { dept: 'dept5', ax: 'INTERNAL AX', category: '활용', name: 'EEE', progress_act:'착수', progress: 50, explain:'EEE 사업에 대한 개요입니다. 사업에 대한 간략한 개요가 적힐 예정입니다.', total_budget:420, spend_budget:430, gpu_usage: 50.3, ai_domestic: 'N' },
+  { dept: 'dept6', ax: 'EXTERNAL AX', category: 'R&D', name: 'FFF', progress_act:'완료', progress: 100, explain:'FFF 사업에 대한 개요입니다. 사업에 대한 간략한 개요가 적힐 예정입니다.', total_budget:450, spend_budget:480, gpu_usage: 90.9, ai_domestic: 'N' },
+  { dept: 'dept7', ax: 'EXTERNAL AX', category: '보호', name: 'GGG', progress_act:'사업자 선정', progress: 25, explain:'GGG 사업에 대한 개요입니다. 사업에 대한 간략한 개요가 적힐 예정입니다.', total_budget:10, spend_budget:90, gpu_usage: 5.3, ai_domestic: 'N' },
+];
+
+// 엑셀 컬럼 매핑
+const COL_MAP = {
+  '담당부서':      'dept',
+  '담당 부서':     'dept',
+  'AX구분':        'ax',
+  'AX 구분':       'ax',
+  '전략분야':      'category',
+  '사업명':        'name',
+  '진행사항':      'progress_act',
+  '진척률':        'progress',
+  '진척도':        'progress',
+  '사업개요':      'explain',
+  '총예산':        'total_budget',
+  '사용예산':      'spend_budget',
+  '예산사용률':    'budget_spending_wheel',
+  'GPU활용률':     'gpu_usage',
+  'GPU 활용률':    'gpu_usage',
+  '국산AI활용률':  'ai_domestic',
+  '국산 AI 활용률':'ai_domestic',
+};
+
+// ══════════════════════════════════════════════════════════
+// 유틸
+// ══════════════════════════════════════════════════════════
+function getStageInfo(d) {
+  const act = String(d.progress_act || '').trim();
+  if (act === '완료'      || (!act && d.progress >= 80))
+    return { cls: 'status-done',     label: '완료',        color: '#10b981' };
+  if (act === '진행' || act === '진행중' || (!act && d.progress >= 50))
+    return { cls: 'status-progress', label: '진행중',      color: '#3b82f6' };
+  if (act === '착수'      || (!act && d.progress >= 20))
+    return { cls: 'status-start',    label: '착수',        color: '#8b5cf6' };
+  if (act === '사업자 선정' || act === '사업자선정' || !act)
+    return { cls: 'status-select',   label: '사업자 선정', color: '#f59e0b' };
+  return   { cls: 'status-select',   label: '사업자 선정', color: '#f59e0b' };
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+// ══════════════════════════════════════════════════════════
+// 렌더링
+// ══════════════════════════════════════════════════════════
+function render() {
+  renderPage0(); // 대시보드 (통계 + 추진현황 통합)
+  renderPage1(); // 사업별 현황
+}
+
+// Page 0: 대시보드 (통계 4카드 + 추진현황 통합)
+function renderPage0() {
+  const total = DATA.length;
+
+  // ── 추진현황 KPI ──
+  const avg = total ? (DATA.reduce((s,d)=>s+d.progress,0)/total).toFixed(1) : 0;
+  document.getElementById('kpi-avg').textContent = avg + '%';
+  document.getElementById('kpi-total').textContent = pad2(total);
+  const focus  = DATA.filter(d => getStageInfo(d).cls === 'status-select').length;
+  const normal = DATA.filter(d => getStageInfo(d).cls === 'status-start' || getStageInfo(d).cls === 'status-progress').length;
+  const done   = DATA.filter(d => getStageInfo(d).cls === 'status-done').length;
+  document.getElementById('risk-focus').textContent  = focus;
+  document.getElementById('risk-normal').textContent = normal;
+  document.getElementById('risk-done').textContent   = done;
+  const tbody = document.getElementById('progress-tbody');
+  tbody.innerHTML = DATA.map(d => {
+    const { cls, label } = getStageInfo(d);
+    const pct = d.progress || 0;
+    // background-size로 전체 트랙 너비 기준 그라데이션 유지
+    const gradStyle = `width:${pct}%;background:linear-gradient(90deg,#f59e0b 0%,#8b5cf6 33%,#3b82f6 66%,#10b981 100%);background-size:${pct > 0 ? (10000/pct).toFixed(1) : 100}% 100%`;
+    return `<tr>
+      <td>${d.name}</td>
+      <td>${d.dept}</td>
+      <td>
+        <div class="progress-bar-cell">
+          <div class="progress-track">
+            <div class="progress-fill" style="${gradStyle}"></div>
+          </div>
+          <span class="pct-text" style="color:var(--text-muted)">${pct}%</span>
+        </div>
+      </td>
+      <td></td>
+      <td><span class="status-badge ${cls}">${label}</span></td>
+    </tr>`;
+  }).join('');
+
+  // ── 카드1: 도넛 (AX 구분) ──
+  const extCount = DATA.filter(d => d.ax && d.ax.toUpperCase().includes('EXTERNAL')).length;
+  const intCount = total - extCount;
+  const C = 2 * Math.PI * 38;
+  const extArc = C * (extCount / (total||1));
+  const intArc = C * (intCount / (total||1));
+  document.getElementById('donut-total').textContent = total;
+  document.getElementById('legend-ext').textContent = `외부 (${extCount})`;
+  document.getElementById('legend-int').textContent = `내부 (${intCount})`;
+  document.getElementById('donut-ext').setAttribute('stroke-dasharray', `${extArc} ${C - extArc}`);
+  document.getElementById('donut-ext').setAttribute('stroke-dashoffset', '0');
+  document.getElementById('donut-int').setAttribute('stroke-dasharray', `${intArc} ${C - intArc}`);
+  document.getElementById('donut-int').setAttribute('stroke-dashoffset', `${-extArc}`);
+
+  // ── 카드2: 세로 막대 (전략분야별) ──
+  const catMap = {};
+  DATA.forEach(d => { catMap[d.category] = (catMap[d.category] || 0) + 1; });
+  const catEntries = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
+  const maxCat = Math.max(...Object.values(catMap), 1);
+  const barColors = ['#3b82f6','#10b981','#6366f1','#f59e0b','#ef4444'];
+  document.getElementById('vchart-bars').innerHTML = catEntries.map(([cat, cnt], i) => {
+    const h = Math.round((cnt / maxCat) * 140);
+    return `<div class="vchart-col">
+      <span class="vchart-val">${cnt}</span>
+      <div class="vchart-bar" style="height:${h}px;background:${barColors[i%barColors.length]}"></div>
+    </div>`;
+  }).join('');
+  document.getElementById('vchart-axis').innerHTML = catEntries.map(([cat]) =>
+    `<span class="vchart-label">${cat}</span>`).join('');
+
+  // ── 카드3: GPU 바 차트 ──
+  document.getElementById('gpu-list').innerHTML = DATA.map(d => {
+    const val = Number(d.gpu_usage || 0).toFixed(1);
+    const color = val >= 80 ? 'var(--green)' : val >= 50 ? 'var(--blue)' : 'var(--yellow)';
+    return `<div class="gpu-row">
+      <div class="gpu-row-header">
+        <span class="gpu-name">${d.name}</span>
+        <span class="gpu-pct" style="color:${color}">${val}%</span>
+      </div>
+      <div class="gpu-track">
+        <div class="gpu-fill" style="width:${val}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── 카드4: 국산 AI 파이 ──
+  const domCount = DATA.filter(d => String(d.ai_domestic).toUpperCase() === 'Y').length;
+  const avgDom = total > 0 ? Math.round((domCount / total) * 100) : 0;
+  const extPct = 100 - avgDom;
+  document.getElementById('pie-legend-dom').textContent = `국산 (${avgDom}%)`;
+  document.getElementById('pie-legend-ext').textContent = `외산 (${extPct}%)`;
+  const cx = 80, cy = 80, r = 65;
+  const domDeg = avgDom * 3.6;
+  const rad = (domDeg - 90) * Math.PI / 180;
+  const dx = cx + r * Math.cos(rad), dy2 = cy + r * Math.sin(rad);
+  const largeArc = domDeg > 180 ? 1 : 0;
+  document.getElementById('pie-svg').innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#1c2333"/>
+    <path d="M${cx},${cy} L${cx},${cy-r} A${r},${r} 0 ${largeArc},1 ${dx},${dy2} Z" fill="#10b981" opacity="0.85"/>
+    <path d="M${cx},${cy} L${dx},${dy2} A${r},${r} 0 ${1-largeArc},1 ${cx},${cy-r} Z" fill="#3b82f6" opacity="0.85"/>
+  `;
+}
+
+// Page 1: 사업별 현황
+function renderPage1() {
+  const steps = ['사업자 선정', '착수', '진행중', '완료'];
+
+  function getStepIdx(d) {
+    // progress_act 값 우선 (엑셀의 진행사항 컬럼)
+    const act = String(d.progress_act || '').trim();
+    if (act === '완료')      return 3;
+    if (act === '진행' || act === '진행중') return 2;
+    if (act === '착수')      return 1;
+    if (act === '사업자 선정' || act === '사업자선정') return 0;
+    // progress_act 없으면 진척률로 자동 분기
+    if (d.progress >= 100) return 3;
+    if (d.progress >= 50)  return 2;
+    if (d.progress >= 20)  return 1;
+    return 0;
+  }
+
+  const grid = document.getElementById('project-grid');
+  grid.innerHTML = DATA.map((d, idx) => {
+    const activeStep = getStepIdx(d);
+    const stepsHTML = steps.map((s, i) => `
+      ${i > 0 ? '<span class="card-step-arrow">▶</span>' : ''}
+      <span class="project-card-step ${i === activeStep ? 'active' : ''}">${s}</span>
+    `).join('');
+    return `
+      <div class="project-card" onclick="openModal(${idx})">
+        <div class="project-card-tags">
+          <span class="tag">${d.ax || '-'}</span>
+          <span class="tag">${d.category || '-'}</span>
+        </div>
+        <div class="project-card-name">${d.name}</div>
+        <div class="project-card-steps">${stepsHTML}</div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// 모달
+// ══════════════════════════════════════════════════════════
+function openModal(idx) {
+  const d = DATA[idx];
+  if (!d) return;
+
+  // 헤더
+  document.getElementById('modal-name').textContent = d.name || '-';
+  const isExt = d.ax && d.ax.toUpperCase().includes('EXTERNAL');
+  document.getElementById('modal-tags').innerHTML = `
+    <span class="tag ${isExt ? 'external' : 'internal'}">${d.ax || '-'}</span>
+    <span class="tag category">${d.category || '-'}</span>
+  `;
+
+  // 기본 정보
+  document.getElementById('modal-field-name').textContent  = d.name || '-';
+  document.getElementById('modal-field-ax').textContent    = isExt ? '외부 AX 구축' : '내부 AX 구축';
+  document.getElementById('modal-field-dept').textContent  = d.dept || '-';
+  document.getElementById('modal-field-explain').textContent = d.explain || '(사업 개요 없음)';
+
+  // 현재 단계 (진행사항 우선, 없으면 진척률 기준)
+  const steps = ['사업자 선정', '착수', '진행중', '완료'];
+  const act = String(d.progress_act || '').trim();
+  let activeIdx = 0;
+  if      (act === '완료')                              activeIdx = 3;
+  else if (act === '진행' || act === '진행중')           activeIdx = 2;
+  else if (act === '착수')                              activeIdx = 1;
+  else if (act === '사업자 선정' || act === '사업자선정') activeIdx = 0;
+  else if (d.progress >= 100) activeIdx = 3;
+  else if (d.progress >= 50)  activeIdx = 2;
+  else if (d.progress >= 20)  activeIdx = 1;
+  document.getElementById('modal-steps').innerHTML = steps.map((s, i) => `
+    ${i > 0 ? '<span class="modal-step-arrow">›</span>' : ''}
+    <span class="modal-step ${i === activeIdx ? 'active' : ''}">${s}</span>
+  `).join('');
+
+  // 예산 정보
+  const total = Number(d.total_budget) || 0;
+  const spend = Number(d.spend_budget) || 0;
+  const pct   = total > 0 ? ((spend / total) * 100).toFixed(1) : Number(d.budget_spending_wheel || 0).toFixed(1);
+  const fmt   = n => n > 0 ? n.toLocaleString('ko-KR') + '  백만원' : '-';
+  document.getElementById('modal-total-budget').textContent = fmt(total);
+  document.getElementById('modal-spend-budget').textContent = fmt(spend);
+  document.getElementById('modal-budget-pct').textContent   = pct + '%';
+  document.getElementById('modal-budget-fill').style.width  = Math.min(pct, 100) + '%';
+
+  document.getElementById('modalBackdrop').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function handleBackdropClick(e) {
+  if (e.target === document.getElementById('modalBackdrop')) closeModal();
+}
+
+// ESC 키로 닫기
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+function switchPage(idx) {
+  document.querySelectorAll('.page').forEach((p,i) => p.classList.toggle('active', i===idx));
+  document.querySelectorAll('.nav-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+}
+
+// ══════════════════════════════════════════════════════════
+// 엑셀 fetch & 파싱
+// ══════════════════════════════════════════════════════════
+
+const EXCEL_PATH = './assets/AX BMS Update Excel.xlsx';
+const REQUIRED_FIELDS = ['name']; // 최소 필수 필드
+let DATA_BACKUP = null;
+
+// 버튼 상태 관리
+function setBtnState(state) {
+  const btn = document.getElementById('updateBtn');
+  const badge = document.getElementById('updateBadge');
+  if (state === 'loading') {
+    btn.disabled = true;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 5.36A9 9 0 0020.49 15"/></svg> 읽는 중...`;
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 5.36A9 9 0 0020.49 15"/></svg> 데이터 업데이트`;
+  }
+}
+
+// 엑셀 파싱 공통 함수
+function parseWorkbook(wb) {
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  if (!rows.length) throw new Error('EMPTY');
+
+  const NUMERIC_FIELDS = new Set(['progress','gpu_usage','total_budget','spend_budget','budget_spending_wheel']);
+
+  const parsed = rows.map(row => {
+    const item = {};
+    Object.entries(row).forEach(([k, v]) => {
+      const key = COL_MAP[k.trim()] || null;
+      if (key) item[key] = NUMERIC_FIELDS.has(key) ? Number(v) || 0 : String(v).trim();
+    });
+    return item;
+  }).filter(d => d.name);
+
+  if (!parsed.length) throw new Error('COL_MISMATCH');
+
+  const missing = REQUIRED_FIELDS.filter(f => !parsed.some(d => d[f]));
+  if (missing.length) throw new Error('MISSING_FIELDS');
+
+  return parsed;
+}
+
+// assets 폴더에서 엑셀 fetch
+async function loadExcel() {
+  setBtnState('loading');
+  DATA_BACKUP = JSON.parse(JSON.stringify(DATA)); // 백업
+  try {
+    const res = await fetch(EXCEL_PATH, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('FILE_NOT_FOUND');
+
+    const buf = await res.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const parsed = parseWorkbook(wb);
+
+    DATA = parsed;
+    const now = new Date();
+    document.getElementById('updateBadge').textContent =
+      `Updated: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    render();
+    showToast(`✅ ${DATA.length}개 사업 데이터를 업데이트했습니다.`, 'success');
+    setBtnState('idle');
+  } catch (err) {
+    if (DATA_BACKUP) DATA = DATA_BACKUP;
+    setBtnState('idle');
+    const MESSAGES = {
+      'FILE_NOT_FOUND': '❌ 엑셀 파일을 찾을 수 없습니다.',
+      'EMPTY':          '❌ 엑셀 파일에 데이터가 없습니다.',
+      'COL_MISMATCH':   '❌ 엑셀 컬럼을 인식할 수 없습니다.',
+      'MISSING_FIELDS': '❌ 필수 컬럼이 누락되었습니다.',
+    };
+    showToast(MESSAGES[err.message] || '❌ 데이터 업데이트 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+// ── 토스트 알림 ──
+function showToast(msg, type = 'success') {
+  const existing = document.getElementById('toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'toast';
+  toast.style.cssText = `
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; padding: 14px 24px; border-radius: 10px;
+    font-size: 13px; font-weight: 500; font-family: 'Noto Sans KR', sans-serif;
+    max-width: 480px; white-space: pre-wrap; line-height: 1.5;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: fadeIn 0.2s ease;
+    ${type === 'success'
+      ? 'background:#162a1e; color:#34d399; border:1px solid rgba(16,185,129,0.3);'
+      : 'background:#2a1616; color:#f87171; border:1px solid rgba(239,68,68,0.3);'}
+  `;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => { if (toast.parentNode) toast.remove(); }, type === 'error' ? 6000 : 3000);
+}
+
+// ── 스핀 애니메이션 ──
+const spinStyle = document.createElement('style');
+spinStyle.textContent = `@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`;
+document.head.appendChild(spinStyle);
+
+// ══════════════════════════════════════════════════════════
+// 초기 렌더 + 자동 로드
+// ══════════════════════════════════════════════════════════
+render();
+loadExcel(); // 페이지 열릴 때 자동으로 엑셀 로드
+</script>
+</body>
+</html>
