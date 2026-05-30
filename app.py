@@ -466,16 +466,16 @@ def render_header(biz_df: pd.DataFrame, budget_df: pd.DataFrame) -> None:
     next_budget = normalize_money(budget_df.get("사업비(백만원)", pd.Series(dtype="float64"))).sum()
     completed = int(biz_df.get("진행상태", pd.Series(dtype="object")).astype(str).str.contains("완료", na=False).sum())
 
-    st.markdown(
-        "<div class='kai-topbar'>"
-        "<div class='kai-logo'>AI·BMS</div>"
-        "<div class='kai-nav-pill'>📊 대시보드</div>"
-        "<div class='kai-nav-pill'>📁 과제 탐색</div>"
-        "<div class='kai-nav-pill'>🏢 조직별</div>"
-        "<div class='kai-updated'>STREAMLIT · EAV SAMPLE</div>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    # st.markdown(
+    #     "<div class='kai-topbar'>"
+    #     "<div class='kai-logo'>AI·BMS</div>"
+    #     "<div class='kai-nav-pill'>📊 대시보드</div>"
+    #     "<div class='kai-nav-pill'>📁 과제 탐색</div>"
+    #     "<div class='kai-nav-pill'>🏢 조직별</div>"
+    #     "<div class='kai-updated'>STREAMLIT · EAV SAMPLE</div>"
+    #     "</div>",
+    #     unsafe_allow_html=True,
+    # )
     st.markdown(
         "<section class='kai-hero'>"
         "<div class='kai-eyebrow'>KIPO AI PROJECT CONTROL CENTER</div>"
