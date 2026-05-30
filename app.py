@@ -10,6 +10,7 @@ import streamlit as st
 
 ROOT = Path(__file__).parent
 MODEL_CONFIG_PATH = ROOT / "model_config.json"
+SAMPLE_DATA_PATH = ROOT / "data" / "sample_ai_tasks.json"
 
 st.set_page_config(
     page_title="지식재산처 AI과제 관리 대시보드",
@@ -50,152 +51,33 @@ def make_eav_entity(entity_type: str, entity_id: str, values: dict[str, Any]) ->
 
 
 @st.cache_data(show_spinner=False)
+def load_sample_entities() -> list[dict[str, Any]]:
+    with SAMPLE_DATA_PATH.open(encoding="utf-8") as file:
+        return json.load(file)
+
+
+@st.cache_data(show_spinner=False)
 def load_eav_rows(config: dict[str, Any]) -> list[dict[str, Any]]:
-    """임시 샘플 데이터를 EAV(Entity-Attribute-Value) 형태로 생성합니다.
+    """JSON 샘플 데이터를 EAV(Entity-Attribute-Value) 형태로 변환합니다.
 
-    실제 저장소가 붙기 전까지 model_config.json의 필드명을 그대로 attribute로 사용해
-    화면 구조와 필터를 검증할 수 있게 합니다.
+    실제 저장소가 붙기 전까지 별도 JSON 파일의 임시 데이터를 사용하되,
+    model_config.json의 필드명을 그대로 attribute로 사용해 화면 구조와 필터를 검증합니다.
     """
-    samples: list[dict[str, Any]] = []
-    samples.extend(
-        make_eav_entity(
-            "사업",
-            "BIZ-2026-001",
-            {
-                "부서(국)": "지식재산정보국",
-                "부서(과)": "지식재산데이터관리과",
-                "세부사업명": "지식재산 데이터 활용 기반 구축",
-                "내역사업명": "AI 학습용 IP 데이터셋 정비",
-                "AI과제명": "특허·상표 심사 데이터 품질 자동진단",
-                "담당자": "김지현",
-                "사업비(백만원)": 850,
-                "과제설명": "심사·출원 데이터의 누락, 중복, 비식별화 상태를 AI로 점검하고 학습 가능한 내부 표준 데이터셋을 구축합니다.",
-                "진행상태": "진행중",
-                "국정과제여부": "예",
-                "국정과제번호(??-?)": "12-3",
-                "AI행동계획여부": "예",
-                "AI행동계획과제번호": 24,
-                "AI행동계획권고번호": 81,
-            },
-        )
-    )
-    samples.extend(
-        make_eav_entity(
-            "사업",
-            "BIZ-2026-002",
-            {
-                "부서(국)": "디지털융합심사국",
-                "부서(과)": "인공지능빅데이터심사과",
-                "세부사업명": "AI 기반 심사 지원체계 고도화",
-                "내역사업명": "선행기술 후보 추천 모델 실증",
-                "AI과제명": "인공지능·빅데이터 분야 선행기술 탐색 보조",
-                "담당자": "박민수",
-                "사업비(백만원)": 1_250,
-                "과제설명": "심사관 질의 의도와 청구항 핵심구성을 반영해 선행기술 후보군과 유사 근거를 추천하는 내부 PoC입니다.",
-                "진행상태": "검토중",
-                "국정과제여부": "아니오",
-                "국정과제번호(??-?)": "",
-                "AI행동계획여부": "예",
-                "AI행동계획과제번호": 31,
-                "AI행동계획권고번호": 104,
-            },
-        )
-    )
-    samples.extend(
-        make_eav_entity(
-            "사업",
-            "BIZ-2026-003",
-            {
-                "부서(국)": "지식재산보호협력국",
-                "부서(과)": "상표특별사법경찰과",
-                "세부사업명": "지식재산 침해 대응 역량 강화",
-                "내역사업명": "온라인 위조상품 탐지 자동화",
-                "AI과제명": "상표권 침해 의심 게시물 AI 탐지",
-                "담당자": "이서연",
-                "사업비(백만원)": 640,
-                "과제설명": "오픈마켓·SNS 게시물의 이미지와 문구를 분석해 위조상품 의심 건을 선별하고 조사 우선순위를 제안합니다.",
-                "진행상태": "계획중",
-                "국정과제여부": "예",
-                "국정과제번호(??-?)": "18-2",
-                "AI행동계획여부": "아니오",
-                "AI행동계획과제번호": None,
-                "AI행동계획권고번호": None,
-            },
-        )
-    )
-    samples.extend(
-        make_eav_entity(
-            "사업",
-            "BIZ-2026-004",
-            {
-                "부서(국)": "기계금속심사국",
-                "부서(과)": "자동차심사과",
-                "세부사업명": "첨단산업 심사품질 제고",
-                "내역사업명": "모빌리티 특허 분류 자동화",
-                "AI과제명": "자율주행·전동화 기술분류 추천",
-                "담당자": "최도윤",
-                "사업비(백만원)": 410,
-                "과제설명": "자동차 분야 출원 문헌을 기술 세부 분야별로 자동 분류하고 유사 심사 사례를 연결합니다.",
-                "진행상태": "완료",
-                "국정과제여부": "아니오",
-                "국정과제번호(??-?)": "",
-                "AI행동계획여부": "예",
-                "AI행동계획과제번호": 42,
-                "AI행동계획권고번호": 139,
-            },
-        )
-    )
-    samples.extend(
-        make_eav_entity(
-            "27년 예산안",
-            "BUD-2027-001",
-            {
-                "부서(국)": "지식재산정보국",
-                "부서(과)": "지식재산정보시스템과",
-                "세부사업명": "차세대 지식재산 행정 플랫폼",
-                "내역사업명": "AI 업무비서 및 검색 고도화",
-                "AI과제명": "지식재산처 내부 AI 업무비서 구축",
-                "담당자": "정하늘",
-                "사업비(백만원)": 1_800,
-                "과제설명": "법령, 심사지침, 내부 매뉴얼을 기반으로 담당자 질의응답과 문서 초안을 지원하는 RAG 기반 업무비서입니다.",
-                "국정과제여부": "예",
-                "국정과제번호(??-?)": "12-3",
-                "AI행동계획여부": "예",
-                "AI행동계획과제번호": 27,
-                "AI행동계획권고번호": 88,
-            },
-        )
-    )
-    samples.extend(
-        make_eav_entity(
-            "27년 예산안",
-            "BUD-2027-002",
-            {
-                "부서(국)": "상표디자인심사국",
-                "부서(과)": "디자인심사정책과",
-                "세부사업명": "디자인 심사 디지털 전환",
-                "내역사업명": "이미지 유사도 검색 인프라",
-                "AI과제명": "디자인 유사 이미지 탐색 모델 확산",
-                "담당자": "한유진",
-                "사업비(백만원)": 920,
-                "과제설명": "디자인 출원 이미지와 공개 디자인 자료 간 유사도를 계산해 심사관의 검색 시간을 단축합니다.",
-                "국정과제여부": "아니오",
-                "국정과제번호(??-?)": "",
-                "AI행동계획여부": "예",
-                "AI행동계획과제번호": 36,
-                "AI행동계획권고번호": 118,
-            },
-        )
-    )
-
     configured_attributes = {
         entity_type: set(schema_fields(config, entity_type)) for entity_type in config.get("data_model", {})
     }
-    return [
-        row
-        for row in samples
-        if row["attribute"] in configured_attributes.get(row["entity_type"], set())
-    ]
+
+    rows: list[dict[str, Any]] = []
+    for sample in load_sample_entities():
+        entity_type = sample["entity_type"]
+        values = sample.get("values", {})
+        allowed_attributes = configured_attributes.get(entity_type, set())
+        rows.extend(
+            row
+            for row in make_eav_entity(entity_type, sample["entity_id"], values)
+            if row["attribute"] in allowed_attributes
+        )
+    return rows
 
 
 def eav_to_records(eav_rows: list[dict[str, Any]], config: dict[str, Any], entity_type: str) -> pd.DataFrame:
