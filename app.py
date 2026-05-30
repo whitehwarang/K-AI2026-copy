@@ -1,22 +1,19 @@
 from __future__ import annotations
 
 import json
-from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 ROOT = Path(__file__).parent
-DATA_DIR = ROOT / "data"
-EVAL_DIR = DATA_DIR / "task_eval"
+MODEL_CONFIG_PATH = ROOT / "model_config.json"
 
 st.set_page_config(
-    page_title="대한민국 AI 행동계획 2026 대시보드",
-    page_icon="🇰🇷",
+    page_title="지식재산처 AI과제 관리 대시보드",
+    page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -25,11 +22,10 @@ st.markdown(
     """
     <style>
     .block-container {padding-top: 1.5rem; padding-bottom: 3rem;}
-    .metric-card {background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 14px; padding: 1rem;}
     .small-muted {color:#64748b; font-size:0.9rem;}
     .task-title {font-weight:700; color:#0f172a;}
     .rec-box {border-left: 4px solid #2563eb; padding: .75rem 1rem; background:#f8fafc; border-radius: 8px; margin-bottom:.6rem;}
-    .danger-box {border-left: 4px solid #dc2626; padding: .75rem 1rem; background:#fff7f7; border-radius: 8px; margin-bottom:.6rem;}
+    .schema-chip {display:inline-block; margin:.15rem .25rem .15rem 0; padding:.2rem .55rem; border:1px solid #dbeafe; border-radius:999px; background:#eff6ff; color:#1e40af; font-size:.85rem;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -37,305 +33,338 @@ st.markdown(
 
 
 @st.cache_data(show_spinner=False)
-def load_json(relative_path: str) -> Any:
-    with (ROOT / relative_path).open(encoding="utf-8") as file:
+def load_model_config() -> dict[str, Any]:
+    with MODEL_CONFIG_PATH.open(encoding="utf-8") as file:
         return json.load(file)
 
 
+def schema_fields(config: dict[str, Any], entity_type: str) -> list[str]:
+    return [field["field"] for field in config["data_model"].get(entity_type, [])]
+
+
+def make_eav_entity(entity_type: str, entity_id: str, values: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {"entity_type": entity_type, "entity_id": entity_id, "attribute": attribute, "value": value}
+        for attribute, value in values.items()
+    ]
+
+
 @st.cache_data(show_spinner=False)
-def load_core_data() -> tuple[list[dict[str, Any]], dict[str, Any], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
-    tasks_payload = load_json("data/tasks.json")
-    ministries_payload = load_json("data/ministries.json")
-    references_payload = load_json("data/references.json")
-    timeline_payload = load_json("data/timeline.json")
-    global_payload = load_json("data/globalai_cases.json")
-    return (
-        tasks_payload["tasks"],
-        tasks_payload.get("meta", {}),
-        ministries_payload.get("ministries", []),
-        references_payload,
-        {"timeline": timeline_payload, "global": global_payload},
+def load_eav_rows(config: dict[str, Any]) -> list[dict[str, Any]]:
+    """임시 샘플 데이터를 EAV(Entity-Attribute-Value) 형태로 생성합니다.
+
+    실제 저장소가 붙기 전까지 model_config.json의 필드명을 그대로 attribute로 사용해
+    화면 구조와 필터를 검증할 수 있게 합니다.
+    """
+    samples: list[dict[str, Any]] = []
+    samples.extend(
+        make_eav_entity(
+            "사업",
+            "BIZ-2026-001",
+            {
+                "부서(국)": "지식재산정보국",
+                "부서(과)": "지식재산데이터관리과",
+                "세부사업명": "지식재산 데이터 활용 기반 구축",
+                "내역사업명": "AI 학습용 IP 데이터셋 정비",
+                "AI과제명": "특허·상표 심사 데이터 품질 자동진단",
+                "담당자": "김지현",
+                "사업비(백만원)": 850,
+                "과제설명": "심사·출원 데이터의 누락, 중복, 비식별화 상태를 AI로 점검하고 학습 가능한 내부 표준 데이터셋을 구축합니다.",
+                "진행상태": "진행중",
+                "국정과제여부": "예",
+                "국정과제번호(??-?)": "12-3",
+                "AI행동계획여부": "예",
+                "AI행동계획과제번호": 24,
+                "AI행동계획권고번호": 81,
+            },
+        )
+    )
+    samples.extend(
+        make_eav_entity(
+            "사업",
+            "BIZ-2026-002",
+            {
+                "부서(국)": "디지털융합심사국",
+                "부서(과)": "인공지능빅데이터심사과",
+                "세부사업명": "AI 기반 심사 지원체계 고도화",
+                "내역사업명": "선행기술 후보 추천 모델 실증",
+                "AI과제명": "인공지능·빅데이터 분야 선행기술 탐색 보조",
+                "담당자": "박민수",
+                "사업비(백만원)": 1_250,
+                "과제설명": "심사관 질의 의도와 청구항 핵심구성을 반영해 선행기술 후보군과 유사 근거를 추천하는 내부 PoC입니다.",
+                "진행상태": "검토중",
+                "국정과제여부": "아니오",
+                "국정과제번호(??-?)": "",
+                "AI행동계획여부": "예",
+                "AI행동계획과제번호": 31,
+                "AI행동계획권고번호": 104,
+            },
+        )
+    )
+    samples.extend(
+        make_eav_entity(
+            "사업",
+            "BIZ-2026-003",
+            {
+                "부서(국)": "지식재산보호협력국",
+                "부서(과)": "상표특별사법경찰과",
+                "세부사업명": "지식재산 침해 대응 역량 강화",
+                "내역사업명": "온라인 위조상품 탐지 자동화",
+                "AI과제명": "상표권 침해 의심 게시물 AI 탐지",
+                "담당자": "이서연",
+                "사업비(백만원)": 640,
+                "과제설명": "오픈마켓·SNS 게시물의 이미지와 문구를 분석해 위조상품 의심 건을 선별하고 조사 우선순위를 제안합니다.",
+                "진행상태": "계획중",
+                "국정과제여부": "예",
+                "국정과제번호(??-?)": "18-2",
+                "AI행동계획여부": "아니오",
+                "AI행동계획과제번호": None,
+                "AI행동계획권고번호": None,
+            },
+        )
+    )
+    samples.extend(
+        make_eav_entity(
+            "사업",
+            "BIZ-2026-004",
+            {
+                "부서(국)": "기계금속심사국",
+                "부서(과)": "자동차심사과",
+                "세부사업명": "첨단산업 심사품질 제고",
+                "내역사업명": "모빌리티 특허 분류 자동화",
+                "AI과제명": "자율주행·전동화 기술분류 추천",
+                "담당자": "최도윤",
+                "사업비(백만원)": 410,
+                "과제설명": "자동차 분야 출원 문헌을 기술 세부 분야별로 자동 분류하고 유사 심사 사례를 연결합니다.",
+                "진행상태": "완료",
+                "국정과제여부": "아니오",
+                "국정과제번호(??-?)": "",
+                "AI행동계획여부": "예",
+                "AI행동계획과제번호": 42,
+                "AI행동계획권고번호": 139,
+            },
+        )
+    )
+    samples.extend(
+        make_eav_entity(
+            "27년 예산안",
+            "BUD-2027-001",
+            {
+                "부서(국)": "지식재산정보국",
+                "부서(과)": "지식재산정보시스템과",
+                "세부사업명": "차세대 지식재산 행정 플랫폼",
+                "내역사업명": "AI 업무비서 및 검색 고도화",
+                "AI과제명": "지식재산처 내부 AI 업무비서 구축",
+                "담당자": "정하늘",
+                "사업비(백만원)": 1_800,
+                "과제설명": "법령, 심사지침, 내부 매뉴얼을 기반으로 담당자 질의응답과 문서 초안을 지원하는 RAG 기반 업무비서입니다.",
+                "국정과제여부": "예",
+                "국정과제번호(??-?)": "12-3",
+                "AI행동계획여부": "예",
+                "AI행동계획과제번호": 27,
+                "AI행동계획권고번호": 88,
+            },
+        )
+    )
+    samples.extend(
+        make_eav_entity(
+            "27년 예산안",
+            "BUD-2027-002",
+            {
+                "부서(국)": "상표디자인심사국",
+                "부서(과)": "디자인심사정책과",
+                "세부사업명": "디자인 심사 디지털 전환",
+                "내역사업명": "이미지 유사도 검색 인프라",
+                "AI과제명": "디자인 유사 이미지 탐색 모델 확산",
+                "담당자": "한유진",
+                "사업비(백만원)": 920,
+                "과제설명": "디자인 출원 이미지와 공개 디자인 자료 간 유사도를 계산해 심사관의 검색 시간을 단축합니다.",
+                "국정과제여부": "아니오",
+                "국정과제번호(??-?)": "",
+                "AI행동계획여부": "예",
+                "AI행동계획과제번호": 36,
+                "AI행동계획권고번호": 118,
+            },
+        )
     )
 
-
-@st.cache_data(show_spinner=False)
-def build_recommendation_frame(tasks: list[dict[str, Any]]) -> pd.DataFrame:
-    rows: list[dict[str, Any]] = []
-    for task in tasks:
-        for recommendation in task.get("recommendations", []):
-            rows.append(
-                {
-                    "task_id": task["id"],
-                    "task_title": task["title"],
-                    "policy_axis": task["policy_axis_name"],
-                    "strategic_area": task["strategic_area_name"],
-                    "ministry": recommendation.get("ministry", "미지정"),
-                    "deadline": recommendation.get("deadline", ""),
-                    "deadline_label": recommendation.get("deadline_label", ""),
-                    "status": recommendation.get("status", ""),
-                    "content": recommendation.get("content", ""),
-                }
-            )
-    return pd.DataFrame(rows)
+    configured_attributes = {
+        entity_type: set(schema_fields(config, entity_type)) for entity_type in config.get("data_model", {})
+    }
+    return [
+        row
+        for row in samples
+        if row["attribute"] in configured_attributes.get(row["entity_type"], set())
+    ]
 
 
-@st.cache_data(show_spinner=False)
-def load_eval_index() -> dict[int, dict[str, Path]]:
-    index: dict[int, dict[str, Path]] = defaultdict(dict)
-    for path in EVAL_DIR.glob("task_*_*.json"):
-        parts = path.stem.split("_")
-        if len(parts) >= 3 and parts[1].isdigit():
-            index[int(parts[1])][parts[2]] = path
-    return dict(index)
-
-
-def filter_tasks(
-    tasks: list[dict[str, Any]],
-    query: str,
-    axes: list[str],
-    areas: list[str],
-    ministries: list[str],
-) -> list[dict[str, Any]]:
-    q = query.strip().lower()
-    filtered: list[dict[str, Any]] = []
-    for task in tasks:
-        recs = task.get("recommendations", [])
-        searchable = " ".join(
-            [task.get("title", ""), task.get("background", "")]
-            + [rec.get("content", "") + " " + rec.get("ministry", "") for rec in recs]
-        ).lower()
-        task_ministries = {rec.get("ministry", "미지정") for rec in recs}
-        if q and q not in searchable:
+def eav_to_records(eav_rows: list[dict[str, Any]], config: dict[str, Any], entity_type: str) -> pd.DataFrame:
+    fields = schema_fields(config, entity_type)
+    records: dict[str, dict[str, Any]] = {}
+    for row in eav_rows:
+        if row["entity_type"] != entity_type:
             continue
-        if axes and task.get("policy_axis_name") not in axes:
-            continue
-        if areas and task.get("strategic_area_name") not in areas:
-            continue
-        if ministries and not task_ministries.intersection(ministries):
-            continue
-        filtered.append(task)
-    return filtered
+        entity_id = row["entity_id"]
+        records.setdefault(entity_id, {"ID": entity_id})
+        records[entity_id][row["attribute"]] = row["value"]
+
+    ordered_rows = []
+    for entity_id, values in records.items():
+        ordered_rows.append({"ID": entity_id, **{field: values.get(field) for field in fields}})
+    return pd.DataFrame(ordered_rows, columns=["ID", *fields])
 
 
-def short_text(text: str, limit: int = 180) -> str:
-    text = " ".join(str(text).split())
-    return text if len(text) <= limit else text[: limit - 1] + "…"
+def normalize_money(series: pd.Series) -> pd.Series:
+    return pd.to_numeric(series, errors="coerce").fillna(0)
 
 
-def render_header(meta: dict[str, Any]) -> None:
-    st.title("🇰🇷 대한민국 AI 행동계획 2026 대시보드")
-    st.caption("대통령직속 국가인공지능전략위원회 99개 실천과제 / 326개 정책권고 데이터를 Streamlit으로 탐색합니다. (비공식)")
+def render_header(biz_df: pd.DataFrame, budget_df: pd.DataFrame, organizations: dict[str, list[str]]) -> None:
+    st.title("🏛️ 지식재산처 AI과제 관리 대시보드")
+    st.caption("model_config.json 기반 EAV 임시 데이터로 구성한 지식재산처 내부 AI과제 관리 화면입니다.")
+    total_budget = normalize_money(biz_df.get("사업비(백만원)", pd.Series(dtype="float64"))).sum()
+    next_budget = normalize_money(budget_df.get("사업비(백만원)", pd.Series(dtype="float64"))).sum()
     cols = st.columns(4)
-    cols[0].metric("실천과제", f"{meta.get('total_tasks', 99):,}개")
-    cols[1].metric("정책권고", f"{meta.get('total_recommendations', 326):,}개")
-    cols[2].metric("정책축", f"{meta.get('policy_axes', 3):,}개")
-    cols[3].metric("전략분야", f"{meta.get('strategic_areas', 12):,}개")
+    cols[0].metric("AI과제", f"{len(biz_df):,}개")
+    cols[1].metric("27년 예산안", f"{len(budget_df):,}건")
+    cols[2].metric("사업비", f"{total_budget:,.0f}백만원")
+    cols[3].metric("내부 조직", f"{len(organizations):,}개 국")
+    st.caption(f"27년 예산안 합계: {next_budget:,.0f}백만원 · 실제 데이터 연계 전까지 샘플 데이터로 표시됩니다.")
 
 
-def render_overview(tasks: list[dict[str, Any]], rec_df: pd.DataFrame, ministries_data: list[dict[str, Any]]) -> None:
+def render_schema_note(config: dict[str, Any], entity_type: str) -> None:
+    fields = schema_fields(config, entity_type)
+    chips = "".join(f"<span class='schema-chip'>{field}</span>" for field in fields)
+    st.markdown(f"**{entity_type} 표시 필드(model_config.json 기준)**  ")
+    st.markdown(chips, unsafe_allow_html=True)
+
+
+def render_overview(config: dict[str, Any], biz_df: pd.DataFrame, budget_df: pd.DataFrame) -> None:
     st.subheader("종합 현황")
-    axis_counts = pd.DataFrame(Counter(task["policy_axis_name"] for task in tasks).items(), columns=["정책축", "과제 수"])
-    area_counts = pd.DataFrame(Counter(task["strategic_area_name"] for task in tasks).items(), columns=["전략분야", "과제 수"])
-    ministry_counts = rec_df.groupby("ministry", as_index=False).size().rename(columns={"size": "권고 수"}).sort_values("권고 수", ascending=False)
+    render_schema_note(config, "사업")
 
     left, right = st.columns([1, 1])
     with left:
-        st.plotly_chart(px.pie(axis_counts, values="과제 수", names="정책축", hole=0.45), use_container_width=True)
+        status_counts = biz_df.groupby("진행상태", dropna=False, as_index=False).size().rename(columns={"size": "과제 수"})
+        st.plotly_chart(px.pie(status_counts, values="과제 수", names="진행상태", hole=0.45), use_container_width=True)
     with right:
-        st.plotly_chart(px.bar(area_counts, x="과제 수", y="전략분야", orientation="h", text="과제 수"), use_container_width=True)
+        guk_counts = biz_df.groupby("부서(국)", dropna=False, as_index=False).size().rename(columns={"size": "과제 수"}).sort_values("과제 수")
+        st.plotly_chart(px.bar(guk_counts, x="과제 수", y="부서(국)", orientation="h", text="과제 수"), use_container_width=True)
 
-    st.markdown("#### 담당 부처별 권고 수 Top 15")
-    st.plotly_chart(px.bar(ministry_counts.head(15), x="ministry", y="권고 수", text="권고 수"), use_container_width=True)
+    budget_by_guk = biz_df.assign(**{"사업비(백만원)": normalize_money(biz_df["사업비(백만원)"])}).groupby("부서(국)", as_index=False)["사업비(백만원)"].sum()
+    st.markdown("#### 국별 사업비(백만원)")
+    st.plotly_chart(px.bar(budget_by_guk.sort_values("사업비(백만원)", ascending=False), x="부서(국)", y="사업비(백만원)", text="사업비(백만원)"), use_container_width=True)
 
-    urgent_rows = []
-    for ministry in ministries_data:
-        for action in ministry.get("actions", []):
-            if action.get("is_urgent") or action.get("is_overdue"):
-                urgent_rows.append({"부처": ministry["name"], "과제": action["task_title"], "기한": action["deadline_label"], "내용": short_text(action["content"], 120)})
-    if urgent_rows:
-        st.markdown("#### 임박/주의 권고")
-        st.dataframe(pd.DataFrame(urgent_rows), use_container_width=True, hide_index=True)
+    st.markdown("#### AI과제 목록")
+    st.dataframe(biz_df, use_container_width=True, hide_index=True)
+
+    st.markdown("#### 27년 예산안")
+    render_schema_note(config, "27년 예산안")
+    st.dataframe(budget_df, use_container_width=True, hide_index=True)
 
 
-def render_tasks(tasks: list[dict[str, Any]], rec_df: pd.DataFrame) -> None:
-    st.subheader("실천과제 탐색")
-    axes = sorted({task["policy_axis_name"] for task in tasks})
-    areas = sorted({task["strategic_area_name"] for task in tasks})
-    ministries = sorted(set(rec_df["ministry"].dropna()))
+def filter_records(df: pd.DataFrame, query: str, selected_guk: list[str], selected_gwa: list[str], selected_statuses: list[str]) -> pd.DataFrame:
+    filtered = df.copy()
+    q = query.strip().lower()
+    if q:
+        mask = filtered.astype(str).agg(" ".join, axis=1).str.lower().str.contains(q, regex=False)
+        filtered = filtered[mask]
+    if selected_guk:
+        filtered = filtered[filtered["부서(국)"].isin(selected_guk)]
+    if selected_gwa:
+        filtered = filtered[filtered["부서(과)"].isin(selected_gwa)]
+    if selected_statuses and "진행상태" in filtered.columns:
+        filtered = filtered[filtered["진행상태"].isin(selected_statuses)]
+    return filtered
+
+
+def render_tasks(config: dict[str, Any], biz_df: pd.DataFrame, budget_df: pd.DataFrame) -> None:
+    st.subheader("과제 탐색")
+    entity_type = st.radio("조회 대상", ["사업", "27년 예산안"], horizontal=True)
+    current_df = biz_df if entity_type == "사업" else budget_df
+
     with st.sidebar:
         st.markdown("### 필터")
-        query = st.text_input("검색어", placeholder="예: GPU, 안전, 교육, 과기정통부")
-        selected_axes = st.multiselect("정책축", axes)
-        selected_areas = st.multiselect("전략분야", areas)
-        selected_ministries = st.multiselect("담당 부처", ministries)
+        query = st.text_input("검색어", placeholder="예: 심사, 상표, 데이터, 담당자")
+        selected_guk = st.multiselect("부서(국)", sorted(current_df["부서(국)"].dropna().unique()))
+        selected_gwa = st.multiselect("부서(과)", sorted(current_df["부서(과)"].dropna().unique()))
+        statuses = sorted(current_df["진행상태"].dropna().unique()) if "진행상태" in current_df.columns else []
+        selected_statuses = st.multiselect("진행상태", statuses) if statuses else []
 
-    filtered = filter_tasks(tasks, query, selected_axes, selected_areas, selected_ministries)
-    st.caption(f"검색 결과: {len(filtered):,}개 과제")
-    for task in filtered:
-        with st.expander(f"[{task['id']}] {task['title']} — {task['strategic_area_name']}"):
-            st.markdown(f"**정책축:** {task['policy_axis_name']}  \n**전략분야:** {task['strategic_area_name']}")
-            st.markdown("**배경**")
-            st.write(task.get("background", ""))
-            st.markdown("**정책권고**")
-            for rec in task.get("recommendations", []):
-                st.markdown(
-                    f"<div class='rec-box'><b>{rec.get('seq')}. {rec.get('ministry')}</b> · {rec.get('deadline_label', rec.get('deadline', ''))} · {rec.get('status', '')}<br>{rec.get('content', '')}</div>",
-                    unsafe_allow_html=True,
-                )
+    filtered = filter_records(current_df, query, selected_guk, selected_gwa, selected_statuses)
+    render_schema_note(config, entity_type)
+    st.caption(f"검색 결과: {len(filtered):,}건")
+    st.dataframe(filtered, use_container_width=True, hide_index=True)
 
-
-def render_ministries(ministries_data: list[dict[str, Any]]) -> None:
-    st.subheader("부처별 실행 현황")
-    names = [f"{m['name']} ({m.get('recommendation_count', len(m.get('actions', [])))})" for m in ministries_data]
-    choice = st.selectbox("부처 선택", names)
-    ministry = ministries_data[names.index(choice)]
-    st.metric(ministry.get("full_name", ministry["name"]), f"{ministry.get('recommendation_count', len(ministry.get('actions', []))):,}개 권고")
-    rows = [
-        {
-            "과제 ID": action["task_id"],
-            "과제명": action["task_title"],
-            "기한": action.get("deadline_label", action.get("deadline", "")),
-            "상태": action.get("status", ""),
-            "임박": "예" if action.get("is_urgent") else "",
-            "내용": action.get("content", ""),
-        }
-        for action in ministry.get("actions", [])
-    ]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    for record in filtered.to_dict("records"):
+        title = record.get("AI과제명") or record.get("내역사업명") or record["ID"]
+        with st.expander(f"{record['ID']} · {title}"):
+            cols = st.columns(2)
+            cols[0].markdown(f"**부서(국):** {record.get('부서(국)', '')}")
+            cols[0].markdown(f"**부서(과):** {record.get('부서(과)', '')}")
+            cols[1].markdown(f"**담당자:** {record.get('담당자', '')}")
+            cols[1].markdown(f"**사업비(백만원):** {record.get('사업비(백만원)', '')}")
+            st.markdown("**과제설명**")
+            st.write(record.get("과제설명", ""))
+            detail = pd.DataFrame([{"항목": key, "값": value} for key, value in record.items()])
+            st.dataframe(detail, use_container_width=True, hide_index=True)
 
 
-def render_timeline(timeline_payload: dict[str, Any]) -> None:
-    st.subheader("이행 일정")
-    quarters = timeline_payload.get("quarters", [])
-    if quarters:
-        quarter_df = pd.DataFrame(quarters)
-        st.plotly_chart(px.bar(quarter_df, x="label", y="count", text="count", labels={"label": "분기", "count": "권고 수"}), use_container_width=True)
-        st.dataframe(quarter_df.rename(columns={"id": "분기 ID", "label": "분기", "count": "권고 수", "pct": "비중(%)"}), use_container_width=True, hide_index=True)
+def render_organizations(organizations: dict[str, list[str]], biz_df: pd.DataFrame, budget_df: pd.DataFrame) -> None:
+    st.subheader("조직별 실행 현황")
+    st.caption("기존 부처별 보기를 지식재산처 내부 조직(국·과) 단위로 재구성했습니다.")
 
-    quarter_details = timeline_payload.get("quarter_details", {})
-    if isinstance(quarter_details, dict) and quarter_details:
-        detail_df = pd.DataFrame([{"분기 ID": quarter, "권고 수": count} for quarter, count in quarter_details.items()])
-        with st.expander("원본 분기별 집계 보기"):
-            st.dataframe(detail_df, use_container_width=True, hide_index=True)
+    selected_guk = st.selectbox("국 선택", list(organizations))
+    gwa_options = organizations[selected_guk]
+    selected_gwa = st.selectbox("과 선택", ["전체", *gwa_options])
 
-    parsed = timeline_payload.get("parsed_summary", {})
-    if parsed:
-        summary_rows = [{"구간": key, **value} for key, value in parsed.items() if isinstance(value, dict)]
-        if summary_rows:
-            st.markdown("#### 기간 구간 요약")
-            st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
+    combined = pd.concat(
+        [biz_df.assign(구분="사업"), budget_df.assign(구분="27년 예산안")],
+        ignore_index=True,
+        sort=False,
+    )
+    filtered = combined[combined["부서(국)"] == selected_guk]
+    if selected_gwa != "전체":
+        filtered = filtered[filtered["부서(과)"] == selected_gwa]
 
+    budget_sum = normalize_money(filtered.get("사업비(백만원)", pd.Series(dtype="float64"))).sum()
+    col1, col2, col3 = st.columns(3)
+    col1.metric("관리 항목", f"{len(filtered):,}건")
+    col2.metric("사업비", f"{budget_sum:,.0f}백만원")
+    col3.metric("소속 과", f"{len(gwa_options):,}개")
 
-def render_global_cases(global_payload: dict[str, Any]) -> None:
-    st.subheader("글로벌 AI 정책 사례")
-    cases = global_payload.get("cases", [])
-    if not cases:
-        st.info("사례 데이터가 없습니다.")
+    if filtered.empty:
+        st.info("선택한 조직에 연결된 임시 과제가 없습니다.")
         return
-    countries = sorted({case.get("country", "") for case in cases if case.get("country")})
-    categories = sorted({case.get("category", "") for case in cases if case.get("category")})
-    col1, col2 = st.columns(2)
-    country = col1.multiselect("국가", countries)
-    category = col2.multiselect("분류", categories)
-    filtered = [case for case in cases if (not country or case.get("country") in country) and (not category or case.get("category") in category)]
-    st.caption(f"{len(filtered):,}개 사례")
-    for case in filtered:
-        with st.expander(f"{case.get('country')} · {case.get('category')} · {case.get('title')}"):
-            st.write(case.get("summary", ""))
-            st.write("키워드:", ", ".join(case.get("keywords", [])))
-            st.caption(case.get("date", ""))
+
+    by_gwa = filtered.groupby(["부서(과)", "구분"], dropna=False, as_index=False).size().rename(columns={"size": "건수"})
+    st.plotly_chart(px.bar(by_gwa, x="부서(과)", y="건수", color="구분", text="건수", barmode="group"), use_container_width=True)
+    st.dataframe(filtered, use_container_width=True, hide_index=True)
 
 
-def render_references(references_payload: dict[str, Any]) -> None:
-    st.subheader("참고자료 / 각주 검색")
-    query = st.text_input("참고자료 검색", placeholder="검색어를 입력하세요")
-    q = query.lower().strip()
-    refs = references_payload.get("references", [])
-    footnotes = references_payload.get("footnotes", [])
-    for title, items in [("참고자료", refs), ("각주", footnotes)]:
-        st.markdown(f"#### {title}")
-        matched = [item for item in items if not q or q in json.dumps(item, ensure_ascii=False).lower()]
-        st.caption(f"{len(matched):,}건")
-        st.dataframe(pd.DataFrame(matched), use_container_width=True, hide_index=True)
-
-
-def render_eval(tasks: list[dict[str, Any]]) -> None:
-    st.subheader("AI 페르소나 평가")
-    eval_index = load_eval_index()
-    available_ids = sorted(eval_index)
-    task_options = {f"[{task['id']}] {task['title']}": task["id"] for task in tasks if task["id"] in eval_index}
-    if not task_options:
-        st.info("평가 데이터가 없습니다.")
-        return
-    selected_label = st.selectbox("평가 과제", list(task_options))
-    task_id = task_options[selected_label]
-    labels = {"success": "성공/실패 예측", "risk": "리스크 분석", "cooperation": "협력 분석"}
-    available_types = list(eval_index.get(task_id, {}))
-    selected_type = st.radio("분석 유형", available_types, format_func=lambda key: labels.get(key, key), horizontal=True)
-    with eval_index[task_id][selected_type].open(encoding="utf-8") as file:
-        payload = json.load(file)
-    st.caption(f"모델: {payload.get('model', '')} · 생성: {payload.get('generated_at', '')}")
-    for result in payload.get("results", []):
-        with st.expander(result.get("persona_name", result.get("persona", "페르소나"))):
-            st.markdown(result.get("response", ""))
-
-
-def render_sankey(tasks: list[dict[str, Any]], rec_df: pd.DataFrame) -> None:
-    st.subheader("정책축 → 전략분야 → 과제 → 부처 흐름")
-    max_tasks = st.slider("표시할 과제 수", 10, len(tasks), min(40, len(tasks)), step=5)
-    selected_tasks = tasks[:max_tasks]
-    labels: list[str] = []
-    index: dict[str, int] = {}
-    sources: list[int] = []
-    targets: list[int] = []
-    values: list[int] = []
-
-    def node(label: str) -> int:
-        if label not in index:
-            index[label] = len(labels)
-            labels.append(label)
-        return index[label]
-
-    for task in selected_tasks:
-        axis = node("축: " + task["policy_axis_name"])
-        area = node("분야: " + task["strategic_area_name"])
-        task_node = node(f"[{task['id']}] {short_text(task['title'], 28)}")
-        sources.extend([axis, area])
-        targets.extend([area, task_node])
-        values.extend([1, 1])
-        for ministry in {rec.get("ministry", "미지정") for rec in task.get("recommendations", [])}:
-            sources.append(task_node)
-            targets.append(node("부처: " + ministry))
-            values.append(1)
-
-    fig = go.Figure(data=[go.Sankey(node={"label": labels, "pad": 12, "thickness": 14}, link={"source": sources, "target": targets, "value": values})])
-    fig.update_layout(height=850, font_size=11)
-    st.plotly_chart(fig, use_container_width=True)
+def render_eav_debug(eav_rows: list[dict[str, Any]]) -> None:
+    with st.expander("EAV 원천 행 보기"):
+        st.caption("entity_type, entity_id, attribute, value 구조로 임시 구성한 데이터입니다.")
+        st.dataframe(pd.DataFrame(eav_rows), use_container_width=True, hide_index=True)
 
 
 def main() -> None:
-    tasks, meta, ministries_data, references_payload, extra = load_core_data()
-    rec_df = build_recommendation_frame(tasks)
-    render_header(meta)
+    config = load_model_config()
+    organizations = config.get("organizations", {})
+    eav_rows = load_eav_rows(config)
+    biz_df = eav_to_records(eav_rows, config, "사업")
+    budget_df = eav_to_records(eav_rows, config, "27년 예산안")
 
-    tab_names = ["종합", "과제 탐색", "부처별", "일정", "흐름도", "글로벌 사례", "참고자료", "AI 평가"]
+    render_header(biz_df, budget_df, organizations)
+
+    tab_names = ["종합", "과제 탐색", "조직별"]
     tabs = st.tabs(tab_names)
     with tabs[0]:
-        render_overview(tasks, rec_df, ministries_data)
+        render_overview(config, biz_df, budget_df)
+        render_eav_debug(eav_rows)
     with tabs[1]:
-        render_tasks(tasks, rec_df)
+        render_tasks(config, biz_df, budget_df)
     with tabs[2]:
-        render_ministries(ministries_data)
-    with tabs[3]:
-        render_timeline(extra["timeline"])
-    with tabs[4]:
-        render_sankey(tasks, rec_df)
-    with tabs[5]:
-        render_global_cases(extra["global"])
-    with tabs[6]:
-        render_references(references_payload)
-    with tabs[7]:
-        render_eval(tasks)
+        render_organizations(organizations, biz_df, budget_df)
 
 
 if __name__ == "__main__":
