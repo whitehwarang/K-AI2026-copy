@@ -24,6 +24,7 @@ st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0&family=Material+Icons&display=block');
 
     :root {
         --kai-bg: #0d1117;
@@ -50,6 +51,39 @@ st.markdown(
 
     code, pre, kbd, samp, div[data-testid="stMetricValue"], .kai-logo, .kai-updated, .kai-metric-value {
         font-family: 'IBM Plex Mono', monospace !important;
+    }
+
+    /*
+      Streamlit renders built-in controls (expanders, selectboxes, radios, etc.)
+      with Material Symbols ligature text such as "keyboard_double_arrow_right".
+      The dashboard-wide font override above intentionally restyles app text, but it
+      must not override icon glyph spans; otherwise the ligature text is displayed
+      literally.  Keep Streamlit/Material icon classes on the Material font stack.
+    */
+    .material-icons,
+    .material-symbols-rounded,
+    .material-symbols-outlined,
+    .material-symbols-sharp,
+    [class^="material-icons"],
+    [class*=" material-icons"],
+    [class^="material-symbols"],
+    [class*=" material-symbols"],
+    [data-testid="stIconMaterial"] {
+        font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+        font-weight: normal !important;
+        font-style: normal !important;
+        font-size: inherit;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-feature-settings: 'liga';
+        font-feature-settings: 'liga';
+        -webkit-font-smoothing: antialiased;
+        font-synthesis: none;
     }
 
     .stApp {
