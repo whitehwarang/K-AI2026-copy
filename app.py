@@ -40,8 +40,16 @@ st.markdown(
         --kai-accent: #6366f1;
     }
 
-    html, body, [class*="css"] {
-        font-family: 'Noto Sans KR', sans-serif;
+    html, body, [class*="css"], [class*="st-"], button, input, textarea, select {
+        font-family: 'Noto Sans KR', sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        font-synthesis: none;
+    }
+
+    code, pre, kbd, samp, div[data-testid="stMetricValue"], .kai-logo, .kai-updated, .kai-metric-value {
+        font-family: 'IBM Plex Mono', monospace !important;
     }
 
     .stApp {
@@ -462,38 +470,119 @@ def render_schema_note(config: dict[str, Any], entity_type: str) -> None:
     st.markdown(chips, unsafe_allow_html=True)
 
 
+def yes_count(df: pd.DataFrame, column: str) -> int:
+    if column not in df.columns:
+        return 0
+    return int(df[column].astype(str).str.strip().eq("예").sum())
+
+
+def chart_heading(title: str, caption: str) -> None:
+    st.markdown(f"**{html.escape(title)}**")
+    st.caption(caption)
+
+
 def render_overview(config: dict[str, Any], biz_df: pd.DataFrame, budget_df: pd.DataFrame) -> None:
     section_title("종합 현황")
-    # render_schema_note(config, "사업")
+    st.caption("model_config.json의 사업·27년 예산안 필드 중 기관장 보고에 유용한 부서, 사업비, 진행상태, 국정과제, AI행동계획 정보를 중심으로 구성했습니다.")
 
-    left, right = st.columns([1, 1])
-    with left:
-        status_counts = biz_df.groupby("진행상태", dropna=False, as_index=False).size().rename(columns={"size": "과제 수"})
-        status_fig = px.pie(status_counts, values="과제 수", names="진행상태", hole=0.45)
-        status_fig.update_traces(textfont_color="#e2e8f0", marker={"line": {"color": "#161b22", "width": 2}})
+    biz = biz_df.copy()
+    budget = budget_df.copy()
+    biz["사업비(백만원)"] = normalize_money(biz.get("사업비(백만원)", pd.Series(dtype="float64")))
+    budget["사업비(백만원)"] = normalize_money(budget.get("사업비(백만원)", pd.Series(dtype="float64")))
+    combined = pd.concat([biz.assign(구분="사업"), budget.assign(구분="27년 예산안")], ignore_index=True, sort=False)
+
+    status_counts = biz.groupby("진행상태", dropna=False, as_index=False).size().rename(columns={"size": "과제 수"})
+    top_guk_budget = combined.groupby(["부서(국)", "구분"], dropna=False, as_index=False)["사업비(백만원)"].sum()
+    action_plan = yes_count(combined, "AI행동계획여부")
+    national = yes_count(combined, "국정과제여부")
+
+    metric_cards(
+        [
+            ("총 관리 항목", f"{len(combined):,}건", "사업 + 27년 예산안"),
+            ("총 사업비", f"{combined['사업비(백만원)'].sum():,.0f}", "백만원"),
+            ("AI행동계획 연계", f"{action_plan:,}건", f"전체 대비 {action_plan / max(len(combined), 1):.0%}"),
+            ("국정과제 연계", f"{national:,}건", f"전체 대비 {national / max(len(combined), 1):.0%}"),
+        ]
+    )
+
+    top_left, top_right = st.columns([0.92, 1.08])
+    with top_left:
+        chart_heading("진행상태 포트폴리오", "현재 사업의 완료·진행·검토·계획 비중입니다.")
+        status_fig = px.pie(status_counts, values="과제 수", names="진행상태", hole=0.58)
+        status_fig.update_traces(textfont_color="#e2e8f0", textinfo="percent+label", marker={"line": {"color": "#161b22", "width": 2}})
         st.plotly_chart(apply_chart_theme(status_fig), use_container_width=True)
-    with right:
-        guk_counts = biz_df.groupby("부서(국)", dropna=False, as_index=False).size().rename(columns={"size": "과제 수"}).sort_values("과제 수")
-        guk_fig = px.bar(guk_counts, x="과제 수", y="부서(국)", orientation="h", text="과제 수")
-        guk_fig.update_traces(marker_color="#60a5fa", textfont_color="#e2e8f0")
+    with top_right:
+        chart_heading("국별 사업비 리더보드", "현행 사업과 27년 예산안의 투자 규모를 국별로 비교합니다.")
+        guk_fig = px.bar(
+            top_guk_budget.sort_values("사업비(백만원)", ascending=False),
+            x="사업비(백만원)",
+            y="부서(국)",
+            color="구분",
+            orientation="h",
+            text="사업비(백만원)",
+            barmode="stack",
+        )
+        guk_fig.update_traces(texttemplate="%{text:,.0f}", textfont_color="#e2e8f0")
         st.plotly_chart(apply_chart_theme(guk_fig), use_container_width=True)
 
-    budget_by_guk = biz_df.assign(**{"사업비(백만원)": normalize_money(biz_df["사업비(백만원)"])}).groupby("부서(국)", as_index=False)["사업비(백만원)"].sum()
-    section_title("국별 사업비(백만원)")
-    budget_fig = px.bar(
-        budget_by_guk.sort_values("사업비(백만원)", ascending=False),
-        x="부서(국)",
-        y="사업비(백만원)",
-        text="사업비(백만원)",
-    )
-    budget_fig.update_traces(marker_color="#10b981", textfont_color="#e2e8f0")
-    st.plotly_chart(apply_chart_theme(budget_fig), use_container_width=True)
+    mid_left, mid_right = st.columns([1.08, 0.92])
+    with mid_left:
+        chart_heading("국·과별 투자 트리맵", "부서(국) → 부서(과) → AI과제명 구조로 예산 집중도를 보여줍니다.")
+        treemap_source = combined[combined["사업비(백만원)"] > 0].copy()
+        treemap_source["AI과제명"] = treemap_source["AI과제명"].fillna(treemap_source["내역사업명"]).fillna(treemap_source["ID"])
+        tree_fig = px.treemap(
+            treemap_source,
+            path=["구분", "부서(국)", "부서(과)", "AI과제명"],
+            values="사업비(백만원)",
+            color="사업비(백만원)",
+            color_continuous_scale=["#1c2333", "#3b82f6", "#10b981"],
+        )
+        tree_fig.update_traces(marker={"line": {"color": "#0d1117", "width": 1.5}}, textfont_color="#e2e8f0")
+        st.plotly_chart(apply_chart_theme(tree_fig), use_container_width=True)
+    with mid_right:
+        chart_heading("정책 연계 게이지", "국정과제 및 AI행동계획 연계 여부를 한눈에 점검합니다.")
+        policy_df = pd.DataFrame(
+            [
+                {"구분": "국정과제", "여부": "예", "건수": national},
+                {"구분": "국정과제", "여부": "아니오", "건수": len(combined) - national},
+                {"구분": "AI행동계획", "여부": "예", "건수": action_plan},
+                {"구분": "AI행동계획", "여부": "아니오", "건수": len(combined) - action_plan},
+            ]
+        )
+        policy_fig = px.bar(policy_df, x="구분", y="건수", color="여부", text="건수", barmode="stack", color_discrete_map={"예": "#10b981", "아니오": "#2d3748"})
+        policy_fig.update_traces(textfont_color="#e2e8f0")
+        st.plotly_chart(apply_chart_theme(policy_fig), use_container_width=True)
+
+    bottom_left, bottom_right = st.columns([1, 1])
+    with bottom_left:
+        chart_heading("AI행동계획 과제·권고 매트릭스", "과제번호와 권고번호가 있는 항목의 분포 및 예산 규모입니다.")
+        scatter_source = combined.copy()
+        scatter_source["AI행동계획과제번호"] = pd.to_numeric(scatter_source.get("AI행동계획과제번호"), errors="coerce")
+        scatter_source["AI행동계획권고번호"] = pd.to_numeric(scatter_source.get("AI행동계획권고번호"), errors="coerce")
+        scatter_source = scatter_source.dropna(subset=["AI행동계획과제번호", "AI행동계획권고번호"])
+        scatter_fig = px.scatter(
+            scatter_source,
+            x="AI행동계획과제번호",
+            y="AI행동계획권고번호",
+            size="사업비(백만원)",
+            color="부서(국)",
+            hover_name="AI과제명",
+            hover_data=["구분", "부서(과)", "사업비(백만원)"],
+            size_max=42,
+        )
+        scatter_fig.update_traces(marker={"opacity": 0.82, "line": {"color": "#e2e8f0", "width": 0.6}})
+        st.plotly_chart(apply_chart_theme(scatter_fig), use_container_width=True)
+    with bottom_right:
+        chart_heading("부서별 과제 수 히트맵", "국·과 단위로 과제/예산안 건수가 몰린 지점을 표시합니다.")
+        heat_source = combined.groupby(["부서(국)", "부서(과)"], dropna=False, as_index=False).size().rename(columns={"size": "건수"})
+        heat_fig = px.density_heatmap(heat_source, x="부서(과)", y="부서(국)", z="건수", histfunc="sum", text_auto=True, color_continuous_scale=["#1c2333", "#6366f1", "#60a5fa"])
+        heat_fig.update_traces(textfont={"color": "#e2e8f0"})
+        st.plotly_chart(apply_chart_theme(heat_fig), use_container_width=True)
 
     section_title("AI과제 목록")
     st.dataframe(biz_df, use_container_width=True, hide_index=True)
 
     section_title("27년 예산안")
-    # render_schema_note(config, "27년 예산안")
     st.dataframe(budget_df, use_container_width=True, hide_index=True)
 
 
