@@ -100,17 +100,20 @@ def normalize_money(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce").fillna(0)
 
 
-def render_header(biz_df: pd.DataFrame, budget_df: pd.DataFrame, organizations: dict[str, list[str]]) -> None:
+def render_header(biz_df: pd.DataFrame, budget_df: pd.DataFrame) -> None:
     st.title("🏛️ 지식재산처 AI과제 관리 대시보드")
     st.caption("model_config.json 기반 EAV 임시 데이터로 구성한 지식재산처 내부 AI과제 관리 화면입니다.")
     total_budget = normalize_money(biz_df.get("사업비(백만원)", pd.Series(dtype="float64"))).sum()
     next_budget = normalize_money(budget_df.get("사업비(백만원)", pd.Series(dtype="float64"))).sum()
-    cols = st.columns(4)
+    cols = st.columns(6)
     cols[0].metric("AI과제", f"{len(biz_df):,}개")
-    cols[1].metric("27년 예산안", f"{len(budget_df):,}건")
-    cols[2].metric("사업비", f"{total_budget:,.0f}백만원")
-    cols[3].metric("내부 조직", f"{len(organizations):,}개 국")
-    st.caption(f"27년 예산안 합계: {next_budget:,.0f}백만원 · 실제 데이터 연계 전까지 샘플 데이터로 표시됩니다.")
+    cols[1].metric("26년 예산(건)", f"{len(biz_df):,}건")
+    cols[2].metric("26년 예산(백만원)", f"{total_budget:,.0f}백만원")
+    cols[3].metric("27년 예산안(건)", f"{len(budget_df):,}건")
+    cols[4].metric("27년 예산안(백만원)", f"{next_budget:,.0f}백만원")
+    cols[5].metric("사업비", f"{total_budget:,.0f}백만원")
+    #cols[4].metric("내부 조직", f"{len(organizations):,}개 국")
+    st.caption("실제 데이터 연계 전까지 샘플 데이터로 표시됩니다.")
 
 
 def render_schema_note(config: dict[str, Any], entity_type: str) -> None:
@@ -122,7 +125,7 @@ def render_schema_note(config: dict[str, Any], entity_type: str) -> None:
 
 def render_overview(config: dict[str, Any], biz_df: pd.DataFrame, budget_df: pd.DataFrame) -> None:
     st.subheader("종합 현황")
-    render_schema_note(config, "사업")
+    # render_schema_note(config, "사업")
 
     left, right = st.columns([1, 1])
     with left:
@@ -140,7 +143,7 @@ def render_overview(config: dict[str, Any], biz_df: pd.DataFrame, budget_df: pd.
     st.dataframe(biz_df, use_container_width=True, hide_index=True)
 
     st.markdown("#### 27년 예산안")
-    render_schema_note(config, "27년 예산안")
+    # render_schema_note(config, "27년 예산안")
     st.dataframe(budget_df, use_container_width=True, hide_index=True)
 
 
@@ -173,7 +176,7 @@ def render_tasks(config: dict[str, Any], biz_df: pd.DataFrame, budget_df: pd.Dat
         selected_statuses = st.multiselect("진행상태", statuses) if statuses else []
 
     filtered = filter_records(current_df, query, selected_guk, selected_gwa, selected_statuses)
-    render_schema_note(config, entity_type)
+    # render_schema_note(config, entity_type)
     st.caption(f"검색 결과: {len(filtered):,}건")
     st.dataframe(filtered, use_container_width=True, hide_index=True)
 
@@ -188,6 +191,7 @@ def render_tasks(config: dict[str, Any], biz_df: pd.DataFrame, budget_df: pd.Dat
             st.markdown("**과제설명**")
             st.write(record.get("과제설명", ""))
             detail = pd.DataFrame([{"항목": key, "값": value} for key, value in record.items()])
+            detail["값"] = detail["값"].astype(str)
             st.dataframe(detail, use_container_width=True, hide_index=True)
 
 
@@ -226,7 +230,9 @@ def render_organizations(organizations: dict[str, list[str]], biz_df: pd.DataFra
 def render_eav_debug(eav_rows: list[dict[str, Any]]) -> None:
     with st.expander("EAV 원천 행 보기"):
         st.caption("entity_type, entity_id, attribute, value 구조로 임시 구성한 데이터입니다.")
-        st.dataframe(pd.DataFrame(eav_rows), use_container_width=True, hide_index=True)
+        df = pd.DataFrame(eav_rows)
+        df["value"] = df["value"].astype(str)
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
 
 def main() -> None:
@@ -236,13 +242,13 @@ def main() -> None:
     biz_df = eav_to_records(eav_rows, config, "사업")
     budget_df = eav_to_records(eav_rows, config, "27년 예산안")
 
-    render_header(biz_df, budget_df, organizations)
+    render_header(biz_df, budget_df)
 
     tab_names = ["종합", "과제 탐색", "조직별"]
     tabs = st.tabs(tab_names)
     with tabs[0]:
         render_overview(config, biz_df, budget_df)
-        render_eav_debug(eav_rows)
+        # render_eav_debug(eav_rows)  
     with tabs[1]:
         render_tasks(config, biz_df, budget_df)
     with tabs[2]:
@@ -251,3 +257,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    
