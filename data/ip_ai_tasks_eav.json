@@ -1,0 +1,496 @@
+{
+  "rows": [
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "부서(국)",
+      "value": "지식재산정보국"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "부서(과)",
+      "value": "지식재산데이터관리과"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "세부사업명",
+      "value": "지식재산 데이터 활용 기반 구축"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "내역사업명",
+      "value": "AI 학습용 IP 데이터셋 정비"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "AI과제명",
+      "value": "특허·상표 심사 데이터 품질 자동진단"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "담당자",
+      "value": "김지현"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "사업비(백만원)",
+      "value": 850
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "과제설명",
+      "value": "심사·출원 데이터의 누락, 중복, 비식별화 상태를 AI로 점검하고 학습 가능한 내부 표준 데이터셋을 구축합니다."
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "진행상태",
+      "value": "진행중"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "국정과제여부",
+      "value": "예"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "국정과제번호(??-?)",
+      "value": "12-3"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "AI행동계획여부",
+      "value": "예"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "AI행동계획과제번호",
+      "value": 24
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-001",
+      "attribute": "AI행동계획권고번호",
+      "value": 81
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "부서(국)",
+      "value": "디지털융합심사국"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "부서(과)",
+      "value": "인공지능빅데이터심사과"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "세부사업명",
+      "value": "AI 기반 심사 지원체계 고도화"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "내역사업명",
+      "value": "선행기술 후보 추천 모델 실증"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "AI과제명",
+      "value": "인공지능·빅데이터 분야 선행기술 탐색 보조"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "담당자",
+      "value": "박민수"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "사업비(백만원)",
+      "value": 1250
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "과제설명",
+      "value": "심사관 질의 의도와 청구항 핵심구성을 반영해 선행기술 후보군과 유사 근거를 추천하는 내부 PoC입니다."
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "진행상태",
+      "value": "검토중"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "국정과제여부",
+      "value": "아니오"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "국정과제번호(??-?)",
+      "value": ""
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "AI행동계획여부",
+      "value": "예"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "AI행동계획과제번호",
+      "value": 31
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-002",
+      "attribute": "AI행동계획권고번호",
+      "value": 104
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "부서(국)",
+      "value": "지식재산보호협력국"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "부서(과)",
+      "value": "상표특별사법경찰과"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "세부사업명",
+      "value": "지식재산 침해 대응 역량 강화"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "내역사업명",
+      "value": "온라인 위조상품 탐지 자동화"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "AI과제명",
+      "value": "상표권 침해 의심 게시물 AI 탐지"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "담당자",
+      "value": "이서연"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "사업비(백만원)",
+      "value": 640
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "과제설명",
+      "value": "오픈마켓·SNS 게시물의 이미지와 문구를 분석해 위조상품 의심 건을 선별하고 조사 우선순위를 제안합니다."
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "진행상태",
+      "value": "계획중"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "국정과제여부",
+      "value": "예"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "국정과제번호(??-?)",
+      "value": "18-2"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "AI행동계획여부",
+      "value": "아니오"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "AI행동계획과제번호",
+      "value": null
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-003",
+      "attribute": "AI행동계획권고번호",
+      "value": null
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "부서(국)",
+      "value": "기계금속심사국"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "부서(과)",
+      "value": "자동차심사과"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "세부사업명",
+      "value": "첨단산업 심사품질 제고"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "내역사업명",
+      "value": "모빌리티 특허 분류 자동화"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "AI과제명",
+      "value": "자율주행·전동화 기술분류 추천"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "담당자",
+      "value": "최도윤"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "사업비(백만원)",
+      "value": 410
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "과제설명",
+      "value": "자동차 분야 출원 문헌을 기술 세부 분야별로 자동 분류하고 유사 심사 사례를 연결합니다."
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "진행상태",
+      "value": "완료"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "국정과제여부",
+      "value": "아니오"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "국정과제번호(??-?)",
+      "value": ""
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "AI행동계획여부",
+      "value": "예"
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "AI행동계획과제번호",
+      "value": 42
+    },
+    {
+      "entity_type": "사업",
+      "entity_id": "BIZ-2026-004",
+      "attribute": "AI행동계획권고번호",
+      "value": 139
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "부서(국)",
+      "value": "지식재산정보국"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "부서(과)",
+      "value": "지식재산정보시스템과"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "세부사업명",
+      "value": "차세대 지식재산 행정 플랫폼"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "내역사업명",
+      "value": "AI 업무비서 및 검색 고도화"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "AI과제명",
+      "value": "지식재산처 내부 AI 업무비서 구축"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "담당자",
+      "value": "정하늘"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "사업비(백만원)",
+      "value": 1800
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "과제설명",
+      "value": "법령, 심사지침, 내부 매뉴얼을 기반으로 담당자 질의응답과 문서 초안을 지원하는 RAG 기반 업무비서입니다."
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "국정과제여부",
+      "value": "예"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "국정과제번호(??-?)",
+      "value": "12-3"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "AI행동계획여부",
+      "value": "예"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "AI행동계획과제번호",
+      "value": 27
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-001",
+      "attribute": "AI행동계획권고번호",
+      "value": 88
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "부서(국)",
+      "value": "상표디자인심사국"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "부서(과)",
+      "value": "디자인심사정책과"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "세부사업명",
+      "value": "디자인 심사 디지털 전환"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "내역사업명",
+      "value": "이미지 유사도 검색 인프라"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "AI과제명",
+      "value": "디자인 유사 이미지 탐색 모델 확산"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "담당자",
+      "value": "한유진"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "사업비(백만원)",
+      "value": 920
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "과제설명",
+      "value": "디자인 출원 이미지와 공개 디자인 자료 간 유사도를 계산해 심사관의 검색 시간을 단축합니다."
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "국정과제여부",
+      "value": "아니오"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "국정과제번호(??-?)",
+      "value": ""
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "AI행동계획여부",
+      "value": "예"
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "AI행동계획과제번호",
+      "value": 36
+    },
+    {
+      "entity_type": "27년 예산안",
+      "entity_id": "BUD-2027-002",
+      "attribute": "AI행동계획권고번호",
+      "value": 118
+    }
+  ]
+}
